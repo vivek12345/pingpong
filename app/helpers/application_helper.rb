@@ -27,4 +27,13 @@ module ApplicationHelper
   		end
   		end
   	end
+
+  	def offend_player?
+  		if Match.where("playing_first=? and winner is null",current_player.id).nil?
+  			return false
+  		else 
+  			return true
+  		end
+  	end
+
 end

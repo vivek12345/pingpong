@@ -47,8 +47,9 @@ before_filter :signed_in_player
 	def changeStatus(this,status,winner)
 		if status=="complete"
 			this.update_attributes(status:'complete')
+			redirect_to root_url,status:200
+			flash[:success]="Chmpionship Completed"
 		end
-		this.save
 		if status=="ready"
 		this.update_attributes(status:'ready')
 		game_info={
@@ -66,7 +67,6 @@ before_filter :signed_in_player
 
 
 	def player_status
-		if !refree?
 			@championship=Championship.find_by_status('ready')
 			if !@championship.nil?
 				game=getGame(@championship.id,current_player.id)
@@ -74,7 +74,7 @@ before_filter :signed_in_player
 					match=getMatch(game.id,current_player.id)
 					if match.playing_first==current_player.id
 						redirect_to root_url,status:200
-						flash[:success]="Play your move select a number"
+						flash[:success]="Play your move,select a number"
 						return
 					else
 						if match.first_player_move.nil?
@@ -83,7 +83,7 @@ before_filter :signed_in_player
 							return
 						else
 							redirect_to root_url,status:200
-							flash[:success]="Please play your move"
+							flash[:success]="Second Player please play your move"
 							return
 						end
 					end
@@ -97,9 +97,6 @@ before_filter :signed_in_player
 				flash[:notice]="Waiting for other payers to join"
 				return
 			end
-
-		end
-
 	end
 
 	def getGame(id,player_id)
@@ -113,7 +110,8 @@ before_filter :signed_in_player
 	end
 
 	def offend
-		i=2
+		i=params[:number]
+		i=i.to_i
 		if i>=1 && i<=10
 			match=Match.where("playing_first=? and winner is null and first_player_move is null",current_player.id).first
 			if !match.nil?
@@ -130,12 +128,17 @@ before_filter :signed_in_player
 				match=nil
 
 			else
-				match=Match.where("playing_second=?",current_player.id)
+				match=Match.where("playing_second=? and winner is null",current_player.id).first
 				if !match.nil?
 					redirect_to root_url,status:400
 					flash[:success]="You have to defend,you cannot offend"
 					return
 				else
+					if Match.where("playing_first=? and winner is null and first_player_move is not null",current_player.id).first
+							redirect_to root_url,status:400
+							flash[:notice]="You have played once,please wait for the other player now"
+							return
+					end
 					redirect_to root_url,status:400
 					flash[:notice]="No match found,click on status to get the updated status of your match"
 					return
@@ -149,11 +152,11 @@ before_filter :signed_in_player
 	end
 
 	def defend
-		i=[5,6,3,4,8,7,4,1]
+		i=params[:numbers]
 		if i.length==current_player.defence_set_length
 			match=Match.where("playing_second=? and winner is null and second_player_move is null and first_player_move is not null",current_player.id).first
 			if !match.nil?
-				match.second_player_move=i[0]
+				match.second_player_move=i[0][:d_number]
 				match.save
 				if getWinner(match.first_player_move,i)
 					match.winner=current_player.id
@@ -166,8 +169,8 @@ before_filter :signed_in_player
 					match.playing_second=match.playing_second
 				end
 				if match.save
-					redirect_to root_url,status:200
-					flash[:success]="Match Details Saved"
+					#redirect_to root_url,status:200
+					#flash[:success]="Match Details Saved"
 					
 				else
 					redirect_to root_url,status:400
@@ -177,31 +180,32 @@ before_filter :signed_in_player
 				game_id=match.game_id
 				match_stats=getGameStatus(game_id)
 				@gamewinner=nil
-				if match_stats.count>=1
+				if match_stats.winner==match.playing_first && match_stats.count==5
 					updateGameWinner(game_id,match.playing_first)
 					@gamewinner=match.playing_first
 
 				end
-				#if match_stats.winner==match.playing_second && match_stats.count==5
-				#	updateGameWinner(game_id,match.playing_second)
-				#	@gamewinner=match.playing_second
-				#end
+				if match_stats.winner==match.playing_second && match_stats.count==5
+					updateGameWinner(game_id,match.playing_second)
+					@gamewinner=match.playing_second
+				end
 				if(@gamewinner.nil?)
 					@game=Game.find_by_id(game_id)
 					@game.matches.create(game_id:@game.id,playing_first:match.playing_first,playing_second:match.playing_second)
-					flash[:notice]="No match found,click on status to get the updated status of your match"
-			
+					redirect_to root_url,status:200
+					flash[:notice]="New Match Created"
 				end
 
 			else
-				#redirect_to root_url,status:400 and return
+				redirect_to root_url,status:400 
 				flash[:notice]="No match found,click on status to get the updated status of your match"
+				return
 			end 
 
 		else
-			#redirect_to root_url,status:400 and return
-			flash[:danger]="Your defence array should be of the sie 4"
-			
+			redirect_to root_url,status:400 
+			flash[:danger]="Your defence array should be of the proper size"
+			return
 		end
 
 	end
@@ -227,22 +231,25 @@ before_filter :signed_in_player
 		if newGame.nil?
 			players=getGamePlayers(championship_id,level)
 			if level==2
-				changeStatus(@championship,'complete',players[0][player_id])
+				changeStatus(@championship,'complete',players[0].winner)
 			else
 				game_info={
 					championship_id: championship_id,
-					level: level+1,
+					level: (level+1),
 					players:players.map do |p|
 					{
-						player_id:p.player_id
+						player_id:p.winner
 					}
 					end
 				}
 				redirect_to create_game_path(game_info)
 
 			end
+		else
+			redirect_to root_url,status:200
+			flash[:success]="wait for other games to finish"
 		end
-		return
+
 	end
 
 	def getGameStats(id,level)
@@ -253,5 +260,6 @@ before_filter :signed_in_player
 	def getGamePlayers(id,level)
 		players=Game.where("championship_id=? and level=?",id,level)
 	end
+
 end
 

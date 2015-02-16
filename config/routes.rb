@@ -17,6 +17,17 @@ Pingpong::Application.routes.draw do
   get 'offend' => 'championship#offend'
   get 'defend' => 'championship#defend'
 
+  get 'offend_no' => 'ping_pong#selected_no'
+
+  get 'defend_no' => 'ping_pong#selected_array'
+
+  post 'defend_no' => 'ping_pong#selected_array'
+
+  post 'offend_no' => 'ping_pong#selected_no'
+
+
+  get 'summary' => 'championship#summary'
+
   # The priority is based upon order of creation:
   # first created -> highest priority.
 
