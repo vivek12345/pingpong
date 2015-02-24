@@ -7,7 +7,7 @@
 <%=link_to 'Create',create_championship_path,method:'post'%>
 <%=link_to 'Print Summary','#'%>
 <%else%>
-<%!if isPartOfChampioship? %>
+<%if !isPartOfChampioship? %>
 <%=link_to 'Join',join_championship_path,method:'post'%>
 <%end%>
 <%=link_to 'Status',status_path%>

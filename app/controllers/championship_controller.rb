@@ -48,7 +48,7 @@ before_filter :signed_in_player
 		if status=="complete"
 			this.update_attributes(status:'complete')
 			redirect_to root_url,status:200
-			flash[:success]="Chmpionship Completed"
+			flash[:success]="Championship Completed and the winner is player no:"+winner
 		end
 		if status=="ready"
 		this.update_attributes(status:'ready')
@@ -193,7 +193,7 @@ before_filter :signed_in_player
 					@game=Game.find_by_id(game_id)
 					@game.matches.create(game_id:@game.id,playing_first:match.playing_first,playing_second:match.playing_second)
 					redirect_to root_url,status:200
-					flash[:notice]="New Match Created"
+					flash[:notice]="Winner of this match is "+match.winner+"New Match Created"
 				end
 
 			else
