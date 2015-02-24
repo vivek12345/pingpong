@@ -29,11 +29,42 @@ module ApplicationHelper
   	end
 
   	def offend_player?
-  		if Match.where("playing_first=? and winner is null",current_player.id).nil?
+  		if Match.where("playing_first=? and winner is null",current_player.id).empty?
   			return false
   		else 
   			return true
   		end
   	end
+
+    def isPartOfChampioship?
+      championship=Championship.where(status:'ready').first;
+      if !championship.nil?
+        if ChampionshipPlayer.where('player_id=? and championship_id=?',current_player.id,championship.id).empty?
+          return false;
+        else 
+          return true;
+        end
+      else
+        return false;
+      end
+
+    end
+
+    def isPlayerSecondMove?
+      if Match.where("playing_second=? and winner is null and second_player_move is null and first_player_move is not null",current_player.id).first.nil?
+        return false;
+      else
+        return true;
+      end
+    end  
+
+    def isPlayerFirstMove?
+       if Match.where("playing_first=? and winner is null and second_player_move is null and first_player_move is not null",current_player.id).first.nil?
+        return true;
+      else
+        return false;
+      end
+
+    end  
 
 end

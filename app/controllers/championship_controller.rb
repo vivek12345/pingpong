@@ -1,7 +1,7 @@
 class ChampionshipController < ApplicationController
 before_filter :signed_in_player
 	def create
-		@championship=Championship.where(status:'ready') | Championship.where(status:'wait')
+		@championship=(Championship.where(status:'ready') | Championship.where(status:'wait')).first
 		if @championship.nil?
 			Championship.create(status:"wait")
 			redirect_to root_url,status:201
