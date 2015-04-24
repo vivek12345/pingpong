@@ -1,5 +1,11 @@
 module ApplicationHelper
-  	def signed_in_player
+  	
+
+    def store_array(numbers)
+      session['my_numbers']=numbers
+    end
+
+    def signed_in_player
 		redirect_to root_url, notice: "Please sign in.",status:401 unless logged_in?
 	end
 

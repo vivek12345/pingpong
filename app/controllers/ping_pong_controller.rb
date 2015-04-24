@@ -13,16 +13,9 @@ class PingPongController < ApplicationController
   def selected_array
 
   	if !params[:ping_pong].nil?
-  		numbers=params[:ping_pong][:numbers]
-  		my_numbers=numbers.split(',')
-  		defend_numbers={
-  			numbers:my_numbers.map do |n|
-  			{
-  				d_number:n
-  			}
-  			end
-  		}
-  		redirect_to defend_path(defend_numbers)
+  		@numbers=params[:ping_pong][:numbers]
+      store_array(@numbers)
+      redirect_to defend_path
   	end
 
 

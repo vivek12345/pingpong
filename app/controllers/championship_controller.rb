@@ -18,6 +18,7 @@ before_filter :signed_in_player
 		@championship=Championship.find_by_status('wait')
 		if @championship.nil?
 			redirect_to root_url,status:403
+			flash[:danger]="No championship yet created,wait for refree to create one"
 			return
 		else
 			championship_id=@championship.id
@@ -48,7 +49,7 @@ before_filter :signed_in_player
 		if status=="complete"
 			this.update_attributes(status:'complete')
 			redirect_to root_url,status:200
-			flash[:success]="Championship Completed and the winner is player no:"+winner
+			flash[:success]="Championship Completed and the winner is player no: #{winner}"
 		end
 		if status=="ready"
 		this.update_attributes(status:'ready')
@@ -153,10 +154,12 @@ before_filter :signed_in_player
 
 	def defend
 		i=params[:numbers]
+		i=session['my_numbers']
+		i=i.split(",")
 		if i.length==current_player.defence_set_length
 			match=Match.where("playing_second=? and winner is null and second_player_move is null and first_player_move is not null",current_player.id).first
 			if !match.nil?
-				match.second_player_move=i[0][:d_number]
+				match.second_player_move=i[0]
 				match.save
 				if getWinner(match.first_player_move,i)
 					match.winner=current_player.id
@@ -178,22 +181,26 @@ before_filter :signed_in_player
 					return
 				end
 				game_id=match.game_id
-				match_stats=getGameStatus(game_id)
+				match_stats=getGameStatus(game_id,match.winner)
 				@gamewinner=nil
-				if match_stats.winner==match.playing_first && match_stats.count==5
-					updateGameWinner(game_id,match.playing_first)
-					@gamewinner=match.playing_first
+				#if match_stats.winner==match.playing_first && match_stats.count==5
+				#	updateGameWinner(game_id,match.playing_first)
+				#	@gamewinner=match.playing_first
 
-				end
-				if match_stats.winner==match.playing_second && match_stats.count==5
-					updateGameWinner(game_id,match.playing_second)
-					@gamewinner=match.playing_second
+				#end
+				#if match_stats.winner==match.playing_second && match_stats.count==5
+				#	updateGameWinner(game_id,match.playing_second)
+				#	@gamewinner=match.playing_second
+				#end
+				if match_stats.count==5
+					updateGameWinner(game_id,match_stats.first.winner)
+					@gamewinner=match_stats.first.winner
 				end
 				if(@gamewinner.nil?)
 					@game=Game.find_by_id(game_id)
 					@game.matches.create(game_id:@game.id,playing_first:match.playing_first,playing_second:match.playing_second)
 					redirect_to root_url,status:200
-					flash[:notice]="Winner of this match is "+match.winner+"New Match Created"
+					flash[:notice]="Winner of this match is #{match.winner} New Match Created"
 				end
 
 			else
@@ -211,12 +218,18 @@ before_filter :signed_in_player
 	end
 
 	def getWinner(first_move,i)
-		i.include?(first_move)
+		
+	
+		i.include?(first_move.to_s)
 	end
 
-	def getGameStatus(game_id)
-		match=Match.all(select:"count(*) as count,winner",group:"winner",having:["game_id=?",game_id])
-		match=match.first
+	def getGameStatus(game_id,winner)
+		#changed becoz of prod requirement of pg
+		match=Match.where(game_id:game_id)
+		#match=Match.all(select:"game_id as gameID,count(*) as count,winner",group:"winner",having:["game_id=?",game_id])
+		#match=match.all(select:"count(*) as count,winner",group:"winner")
+		match=match.where(winner:winner)
+		#match=match.first
 	end
 
 	def updateGameWinner(game_id,winner)
